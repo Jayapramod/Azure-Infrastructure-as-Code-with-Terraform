@@ -181,14 +181,14 @@ For detailed patterns, check the [.gitignore](.gitignore) file in the repository
 ```
                                      +---------------+
                                      |  Application  |
-                                     |   Gateway    |
+                                     |   Gateway     |
                                      +---------------+
-                                            |
+                                             |
                     +------------------------|------------------------+
-                    |                        |                       |
+                    |                        |                        |
             +---------------+        +---------------+       +---------------+
-            |    Public     |        |   Private     |       |    AppGw     |
-            |    Subnet     |        |    Subnet     |       |    Subnet    |
+            |    Public     |        |   Private     |       |    AppGw      |
+            |    Subnet     |        |    Subnet     |       |    Subnet     |
             +---------------+        +---------------+       +---------------+
                     |                        |
             +---------------+        +---------------+
