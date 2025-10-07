@@ -1,5 +1,3 @@
-# Ignore generated private keys from Terraform modules
-# 🔒 Terraform files
 **/.terraform/*
 *.tfstate
 *.tfstate.*
@@ -18,8 +16,6 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
-
-# 🔑 SSH & SSL Keys
 *.pem
 *.key
 **/generated_*_private_key.pem
@@ -27,8 +23,6 @@ override.tf.json
 **/certs/*.crt
 **/certs/*.key
 **/certs/*.csr
-
-# 🔐 Azure & Credentials
 .azure
 .env
 *.env
@@ -36,15 +30,11 @@ credentials.json
 azure.*.json
 **/azureProfile.json
 **/AzureRmContext.json
-
-# 📝 Log files
 *.log
 logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# 💻 IDE files
 .vscode/
 .idea/
 *.swp
@@ -55,8 +45,6 @@ yarn-error.log*
 .classpath
 .settings/
 *.code-workspace
-
-# 🖥️ OS files
 .DS_Store
 Thumbs.db
 desktop.ini
@@ -65,20 +53,14 @@ desktop.ini
 .Trashes
 ehthumbs.db
 $RECYCLE.BIN/
-
-# 📦 Dependencies & Build
 node_modules/
 dist/
 build/
 *.zip
 *.tar.gz
 *.tgz
-
-# 🐳 Docker
 docker-compose.override.yml
 .docker/
-
-# 🔄 Temporary files
 *.tmp
 *.bak
 *.backup
@@ -87,8 +69,6 @@ docker-compose.override.yml
 .swap
 .cache/
 tmp/
-
-# 📊 Test coverage & reports
 coverage/
 .coverage
 htmlcov/
