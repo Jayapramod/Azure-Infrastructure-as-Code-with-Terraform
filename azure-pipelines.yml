@@ -1,0 +1,206 @@
+trigger:
+  branches:
+    include:
+    - master
+    - develop
+  paths:
+    include:
+    - '**/*.tf'
+    - 'azure-pipelines.yml'
+
+parameters:
+- name: environment
+  displayName: 'Environment to deploy'
+  type: string
+  default: 'dev'
+  values:
+  - dev
+  - staging
+  - prod
+- name: action
+  displayName: 'Terraform Action'
+  type: string
+  default: 'plan'
+  values:
+  - plan
+  - apply
+  - destroy
+
+variables:
+  - name: TF_WORKSPACE_DIR
+    value: 'environments/${{ parameters.environment }}'
+  - group: terraform-secrets
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+- stage: Validate
+  jobs:
+  - job: ValidateAndFormat
+    steps:
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: 'latest'
+    
+    - task: AzureCLI@2
+      displayName: 'Azure CLI Login'
+      inputs:
+        azureSubscription: 'Azure-Service-Connection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          az account show
+
+    - task: Bash@3
+      displayName: 'Terraform Init'
+      inputs:
+        targetType: 'inline'
+        workingDirectory: $(TF_WORKSPACE_DIR)
+        script: |
+          terraform init \
+            -backend-config="storage_account_name=$(TF_STATE_STORAGE_ACCOUNT)" \
+            -backend-config="container_name=$(TF_STATE_CONTAINER)" \
+            -backend-config="key=${{ parameters.environment }}.tfstate" \
+            -backend-config="subscription_id=$(ARM_SUBSCRIPTION_ID)" \
+            -backend-config="tenant_id=$(ARM_TENANT_ID)" \
+            -backend-config="client_id=$(ARM_CLIENT_ID)" \
+            -backend-config="client_secret=$(ARM_CLIENT_SECRET)"
+
+    - task: Bash@3
+      displayName: 'Terraform Format Check'
+      inputs:
+        targetType: 'inline'
+        workingDirectory: $(System.DefaultWorkingDirectory)
+        script: |
+          terraform fmt -check -recursive
+
+    - task: Bash@3
+      displayName: 'Terraform Validate'
+      inputs:
+        targetType: 'inline'
+        workingDirectory: $(TF_WORKSPACE_DIR)
+        script: |
+          terraform validate
+
+- stage: Plan
+  dependsOn: Validate
+  jobs:
+  - job: TerraformPlan
+    steps:
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: 'latest'
+
+    - task: AzureCLI@2
+      displayName: 'Azure CLI Login'
+      inputs:
+        azureSubscription: 'Azure-Service-Connection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          az account show
+
+    - task: Bash@3
+      displayName: 'Terraform Init'
+      inputs:
+        targetType: 'inline'
+        workingDirectory: $(TF_WORKSPACE_DIR)
+        script: |
+          terraform init \
+            -backend-config="storage_account_name=$(TF_STATE_STORAGE_ACCOUNT)" \
+            -backend-config="container_name=$(TF_STATE_CONTAINER)" \
+            -backend-config="key=${{ parameters.environment }}.tfstate"
+
+    - task: Bash@3
+      displayName: 'Terraform Plan'
+      inputs:
+        targetType: 'inline'
+        workingDirectory: $(TF_WORKSPACE_DIR)
+        script: |
+          terraform plan -out=tfplan \
+            -var "project_name=$(PROJECT_NAME)" \
+            -var "location=$(LOCATION)" \
+            -var "environment=${{ parameters.environment }}"
+      
+    - publish: $(TF_WORKSPACE_DIR)/tfplan
+      artifact: tfplan
+
+- stage: Apply
+  dependsOn: Plan
+  condition: and(succeeded(), eq('${{ parameters.action }}', 'apply'))
+  jobs:
+  - deployment: ApplyTerraform
+    environment: ${{ parameters.environment }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: 'latest'
+
+          - task: AzureCLI@2
+            displayName: 'Azure CLI Login'
+            inputs:
+              azureSubscription: 'Azure-Service-Connection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az account show
+
+          - download: current
+            artifact: tfplan
+
+          - task: Bash@3
+            displayName: 'Terraform Apply'
+            inputs:
+              targetType: 'inline'
+              workingDirectory: $(TF_WORKSPACE_DIR)
+              script: |
+                terraform apply -auto-approve "$(Pipeline.Workspace)/tfplan"
+
+- stage: Destroy
+  dependsOn: []
+  condition: and(succeeded(), eq('${{ parameters.action }}', 'destroy'))
+  jobs:
+  - deployment: DestroyInfrastructure
+    environment: ${{ parameters.environment }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: 'latest'
+
+          - task: AzureCLI@2
+            displayName: 'Azure CLI Login'
+            inputs:
+              azureSubscription: 'Azure-Service-Connection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az account show
+
+          - task: Bash@3
+            displayName: 'Terraform Init'
+            inputs:
+              targetType: 'inline'
+              workingDirectory: $(TF_WORKSPACE_DIR)
+              script: |
+                terraform init \
+                  -backend-config="storage_account_name=$(TF_STATE_STORAGE_ACCOUNT)" \
+                  -backend-config="container_name=$(TF_STATE_CONTAINER)" \
+                  -backend-config="key=${{ parameters.environment }}.tfstate"
+
+          - task: Bash@3
+            displayName: 'Terraform Destroy'
+            inputs:
+              targetType: 'inline'
+              workingDirectory: $(TF_WORKSPACE_DIR)
+              script: |
+                terraform destroy -auto-approve \
+                  -var "project_name=$(PROJECT_NAME)" \
+                  -var "location=$(LOCATION)" \
+                  -var "environment=${{ parameters.environment }}"

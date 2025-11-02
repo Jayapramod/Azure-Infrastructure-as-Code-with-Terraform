@@ -25,9 +25,10 @@ This repository contains a modular Terraform configuration for deploying a scala
 
 ```
 .
-├── Jenkinsfile                 # CI/CD pipeline configuration
-├── README.md                   # Project documentation
-├── app/                        # Application deployment files
+├── azure-pipelines.yml        # Azure DevOps pipeline configuration
+├── Jenkinsfile               # Jenkins pipeline configuration
+├── README.md                 # Project documentation
+├── app/                      # Application deployment files
 │   ├── deploy.sh              # Application deployment script
 │   ├── docker-compose.yml     # Container orchestration config
 │   ├── Dockerfile             # Container image definition
@@ -104,24 +105,109 @@ This repository contains a modular Terraform configuration for deploying a scala
   - Managed identities for Azure services
   - SSL/TLS termination at Application Gateway
 
-## 🔄 CI/CD Pipeline
+ ## 🔄 CI/CD Pipelines
 
-Automated deployment pipeline using Jenkins:
-1. Environment Selection (dev/staging/prod)
-2. Action Selection (plan/apply/destroy)
-3. Terraform Initialization
-4. Code Formatting Check
-5. Configuration Validation
-6. Plan Generation
-7. Apply/Destroy Execution
+This project supports both Jenkins and Azure DevOps pipelines for automated infrastructure deployment.
+
+### Azure DevOps Pipeline (`azure-pipelines.yml`)
+
+The Azure Pipeline provides a comprehensive infrastructure automation solution:
+
+#### Pipeline Features
+- Multi-environment support (dev/staging/prod)
+- Parameter-driven deployments
+- Infrastructure validation
+- Security checks
+- Automated deployments
+- Environment protection rules
+
+#### Pipeline Stages
+1. **Validate Stage**
+   - Terraform format verification
+   - Configuration validation
+   - Syntax checking
+   - Security scanning
+   
+2. **Plan Stage**
+   - Infrastructure plan generation
+   - Cost estimation
+   - Change documentation
+   - Plan artifact creation
+   
+3. **Apply Stage**
+   - Controlled deployments
+   - Resource creation/modification
+   - State management
+   - Post-deployment validation
+   
+4. **Destroy Stage**
+   - Controlled infrastructure teardown
+   - Resource cleanup
+   - State management
+   - Environment cleanup
+
+#### Azure Pipeline Prerequisites
+1. **Azure DevOps Setup**
+   - Azure DevOps Project
+   - Repository connection
+   - Service Principal with required permissions
+   - Environment configurations
+
+2. **Required Variable Group: `terraform-secrets`**
+   ```
+   ARM_SUBSCRIPTION_ID
+   ARM_TENANT_ID
+   ARM_CLIENT_ID
+   ARM_CLIENT_SECRET
+   TF_STATE_STORAGE_ACCOUNT
+   TF_STATE_CONTAINER
+   PROJECT_NAME
+   LOCATION
+   ```
+
+3. **Environment Protection**
+   - Approval gates for production
+   - Environment-specific variables
+   - Resource locking
+   - Audit logging
+
+#### Using Azure Pipeline
+1. **Initial Setup**
+   ```bash
+   # Create Service Principal
+   az ad sp create-for-rbac --name "TerraformSP" --role Contributor
+
+   # Create Variable Group
+   az pipelines variable-group create 
+   ```
+
+2. **Environment Configuration**
+   - Configure environments in Azure DevOps
+   - Set up approval policies
+   - Configure environment variables
+
+3. **Running the Pipeline**
+   - Select environment (dev/staging/prod)
+   - Choose action (plan/apply/destroy)
+   - Review and approve changes
+   - Monitor deployment
+   - `PROJECT_NAME`
+   - `LOCATION`
+
+#### Environment Protection
+- Approval gates for production deployments
+- Environment-specific variables
+- Resource locking mechanisms
 
 ## 🛠 Prerequisites
 
 - Azure Subscription
 - Azure CLI
 - Terraform >= 1.0.0
-- Jenkins with required plugins
+- Jenkins with required plugins or Azure DevOps account
+- Azure DevOps CLI (for Azure Pipeline)
 - Docker (for application deployment)
+- Service Principal with required permissions
 
 ## 🏃‍♂️ Getting Started
 
