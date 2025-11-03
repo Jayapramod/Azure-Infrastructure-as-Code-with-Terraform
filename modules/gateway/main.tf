@@ -32,7 +32,7 @@ resource "azurerm_key_vault_access_policy" "current_client_policy" {
 resource "azurerm_key_vault_certificate" "this" {
   name         = var.certificate_secret_name
   key_vault_id = azurerm_key_vault.this.id
-  depends_on = [azurerm_key_vault_access_policy.current_client_policy, azurerm_key_vault_access_policy.appgw_policy]
+  depends_on   = [azurerm_key_vault_access_policy.current_client_policy, azurerm_key_vault_access_policy.appgw_policy]
 
   certificate_policy {
     key_properties {

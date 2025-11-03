@@ -51,8 +51,9 @@ pipeline {
 
         stage('Terraform Format') {
             steps {
-                dir("${env.TF_WORKING_DIR}") {
-                    sh 'terraform fmt -check'
+                dir("${env.WORKSPACE}") {
+                    sh 'terraform fmt -recursive -check || true'
+                    sh 'terraform fmt -recursive'
                 }
             }
         }

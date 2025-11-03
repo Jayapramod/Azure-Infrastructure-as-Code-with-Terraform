@@ -90,13 +90,13 @@ resource "azurerm_network_security_group" "private_nsg" {
 
   # Allow HTTP from Application Gateway (assumed in public subnet)
   security_rule {
-    name                       = "Allow-HTTP-From-AppGateway"
-    priority                   = 300
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "80"
+    name                   = "Allow-HTTP-From-AppGateway"
+    priority               = 300
+    direction              = "Inbound"
+    access                 = "Allow"
+    protocol               = "Tcp"
+    source_port_range      = "*"
+    destination_port_range = "80"
     # Allow traffic from both the public subnet (bastion/appgw) and the appgw subnet
     # so Application Gateway health probes and traffic can reach the private VMs.
     source_address_prefixes    = [var.public_subnet_prefix, var.appgw_subnet_prefix]
