@@ -15,25 +15,6 @@ pipeline {
     }
 
     stages {
-        stage('Create Azure Storage for Terraform State') {
-            steps {
-                sh '''
-                    # Create Resource Group
-                    az group create --name Jayrg --location eastasia
-
-                    # Create Storage Account
-                    az storage account create --name jaystorageaccount05 \
-                        --resource-group Jayrg \
-                        --location eastasia \
-                        --sku Standard_LRS
-
-                    # Create Storage Container
-                    az storage container create --name tfstate \
-                        --account-name jaystorageaccount05 \
-                        --auth-mode login
-                '''
-            }
-        }
 
         stage('Terraform Init') {
             steps {
