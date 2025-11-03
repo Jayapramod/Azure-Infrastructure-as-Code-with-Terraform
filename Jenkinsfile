@@ -2,49 +2,37 @@ pipeline {
     agent any
     
     parameters {
-        choice(
-            name: 'ENVIRONMENT',
-            choices: ['dev', 'staging', 'prod'],
-            description: 'Select the environment to deploy'
-        )
-        choice(
-            name: 'ACTION',
-            choices: ['plan', 'apply', 'destroy'],
-            description: 'Select the action to perform'
-        )
-        booleanParam(
-            name: 'APPROVE_APPLY',
-            defaultValue: false,
-            description: 'Check to approve infrastructure changes'
-        )
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Environment to deploy')
+        choice(name: 'ACTION', choices: ['plan', 'apply', 'destroy'], description: 'Terraform action')
     }
 
     environment {
-        // Local workspace directory - this will be your repository root
-        TF_WORKING_DIR = "environments/${params.ENVIRONMENT}"
-        // If you need Azure credentials later, uncomment these:
-        /*
-        ARM_SUBSCRIPTION_ID = credentials('AZURE_SUBSCRIPTION_ID')
-        ARM_CLIENT_ID = credentials('AZURE_CLIENT_ID')
-        ARM_CLIENT_SECRET = credentials('AZURE_CLIENT_SECRET')
-        ARM_TENANT_ID = credentials('AZURE_TENANT_ID')
-        */
+        ARM_CLIENT_ID = credentials('azure-client-id')
+        ARM_CLIENT_SECRET = credentials('azure-client-secret')
+        ARM_SUBSCRIPTION_ID = credentials('azure-subscription-id')
+        ARM_TENANT_ID = credentials('azure-tenant-id')
+        TF_WORKSPACE_DIR = "environments/${params.ENVIRONMENT}"
     }
 
     stages {
-        stage('Workspace Info') {
+        stage('Terraform Init') {
             steps {
-                echo "Working directory: ${env.WORKSPACE}"
-                echo "Environment: ${params.ENVIRONMENT}"
-                echo "Action: ${params.ACTION}"
-                sh 'terraform version'
+                dir("${env.TF_WORKSPACE_DIR}") {
+                    sh """
+                    terraform init \
+                        -backend-config="resource_group_name=Jayrg" \
+                        -backend-config="storage_account_name=jaystorageaccount05" \
+                        -backend-config="container_name=tfstate" \
+                        -backend-config="key=${params.ENVIRONMENT}.tfstate"
+                    """
+                }
             }
         }
 
-        stage('Terraform Init') {
+        stage('Select Workspace') {
             steps {
-                dir("${env.TF_WORKING_DIR}") {
-                    sh 'terraform init'
+                dir("${env.TF_WORKSPACE_DIR}") {
+                    sh "terraform workspace select ${params.ENVIRONMENT} || terraform workspace new ${params.ENVIRONMENT}"
                 }
             }
         }
@@ -71,16 +59,8 @@ pipeline {
                 expression { params.ACTION == 'plan' || params.ACTION == 'apply' }
             }
             steps {
-                dir("${env.TF_WORKING_DIR}") {
-                    sh """
-                    terraform plan \
-                        -var "project_name=jay-project-${params.ENVIRONMENT}" \
-                        -var "location=eastasia" \
-                        -var "public_subnet_prefix=10.0.1.0/24" \
-                        -var "private_subnet_prefix=10.0.2.0/24" \
-                        -var-file="terraform.tfvars" \
-                        -out=tfplan
-                    """
+                dir("${env.TF_WORKSPACE_DIR}") {
+                    sh "terraform plan -var-file=terraform.tfvars -out=tfplan"
                 }
             }
         }
