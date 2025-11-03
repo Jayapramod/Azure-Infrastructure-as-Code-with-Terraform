@@ -12,6 +12,7 @@ pipeline {
         ARM_SUBSCRIPTION_ID = credentials('azure-subscription-id')
         ARM_TENANT_ID = credentials('azure-tenant-id')
         TF_WORKSPACE_DIR = "environments/${params.ENVIRONMENT}"
+        PLAN_FILE = "tfplan-${params.ENVIRONMENT}"
     }
 
     stages {
@@ -70,7 +71,7 @@ pipeline {
 
         stage('Terraform Validate') {
             steps {
-                dir("${env.TF_WORKING_DIR}") {
+                dir("${env.TF_WORKSPACE_DIR}") {
                     sh 'terraform validate'
                 }
             }
@@ -89,7 +90,7 @@ pipeline {
                         -var "vm_size=Standard_B1s" \
                         -var "admin_username=azureuser" \
                         -var "ssh_public_key_path=${WORKSPACE}/ssh/id_rsa.pub" \
-                        -out=tfplan
+                        -out="${env.PLAN_FILE}"
                     """
                 }
             }
@@ -103,7 +104,7 @@ pipeline {
             }
             steps {
                 script {
-                    def plan = readFile "${env.TF_WORKING_DIR}/tfplan"
+                    def plan = readFile "${env.TF_WORKSPACE_DIR}/${env.PLAN_FILE}"
                     input message: "Review the plan output and approve to apply the changes:\n\n${plan}"
                 }
             }
@@ -117,8 +118,8 @@ pipeline {
                 }
             }
             steps {
-                dir("${env.TF_WORKING_DIR}") {
-                    sh 'terraform apply -auto-approve tfplan'
+                dir("${env.TF_WORKSPACE_DIR}") {
+                    sh "terraform apply -auto-approve ${env.PLAN_FILE}"
                 }
             }
         }
@@ -128,7 +129,7 @@ pipeline {
                 expression { params.ACTION == 'destroy' }
             }
             steps {
-                dir("${env.TF_WORKING_DIR}") {
+                dir("${env.TF_WORKSPACE_DIR}") {
                     input message: 'Are you sure you want to destroy the infrastructure?'
                     sh """
                     terraform destroy -auto-approve \
