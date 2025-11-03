@@ -76,6 +76,9 @@ pipeline {
                     terraform plan \
                         -var "project_name=jay-project-${params.ENVIRONMENT}" \
                         -var "location=eastasia" \
+                        -var "public_subnet_prefix=10.0.1.0/24" \
+                        -var "private_subnet_prefix=10.0.2.0/24" \
+                        -var-file="terraform.tfvars" \
                         -out=tfplan
                     """
                 }
