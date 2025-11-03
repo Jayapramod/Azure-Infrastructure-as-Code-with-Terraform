@@ -19,7 +19,10 @@ pipeline {
             steps {
                 sh '''
                     mkdir -p ${WORKSPACE}/ssh
-                    ssh-keygen -t rsa -b 4096 -f ${WORKSPACE}/ssh/id_rsa -N ""
+                    # Remove any existing keys
+                    rm -f ${WORKSPACE}/ssh/id_rsa*
+                    # Generate new key with empty passphrase
+                    ssh-keygen -t rsa -b 4096 -f ${WORKSPACE}/ssh/id_rsa -N '""'
                 '''
             }
         }
