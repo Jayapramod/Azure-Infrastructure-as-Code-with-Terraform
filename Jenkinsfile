@@ -17,12 +17,22 @@ pipeline {
     stages {
         stage('Generate SSH Key') {
             steps {
-                sh '''
-                    mkdir -p ${WORKSPACE}/ssh
-                    # Remove any existing keys
-                    rm -f ${WORKSPACE}/ssh/id_rsa*
+                sh '''#!/bin/bash
+                    # Create ssh directory
+                    SSH_DIR="${WORKSPACE}/ssh"
+                    mkdir -p "$SSH_DIR"
+                    
+                    # Remove any existing keys if they exist
+                    if [ -f "$SSH_DIR/id_rsa" ]; then
+                        rm -f "$SSH_DIR/id_rsa" "$SSH_DIR/id_rsa.pub"
+                    fi
+                    
                     # Generate new key with empty passphrase
-                    ssh-keygen -t rsa -b 4096 -f ${WORKSPACE}/ssh/id_rsa -N '""'
+                    ssh-keygen -t rsa -b 4096 -f "$SSH_DIR/id_rsa" -N ""
+                    
+                    # Set proper permissions
+                    chmod 600 "$SSH_DIR/id_rsa"
+                    chmod 644 "$SSH_DIR/id_rsa.pub"
                 '''
             }
         }
