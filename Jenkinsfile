@@ -15,6 +15,14 @@ pipeline {
     }
 
     stages {
+        stage('Generate SSH Key') {
+            steps {
+                sh '''
+                    mkdir -p ${WORKSPACE}/ssh
+                    ssh-keygen -t rsa -b 4096 -f ${WORKSPACE}/ssh/id_rsa -N ""
+                '''
+            }
+        }
 
         stage('Terraform Init') {
             steps {
@@ -67,6 +75,7 @@ pipeline {
                         -var "vm_count=1" \
                         -var "vm_size=Standard_B1s" \
                         -var "admin_username=azureuser" \
+                        -var "ssh_public_key_path=${WORKSPACE}/ssh/id_rsa.pub" \
                         -out=tfplan
                     """
                 }
@@ -111,7 +120,8 @@ pipeline {
                     sh """
                     terraform destroy -auto-approve \
                         -var "project_name=jay-project-${params.ENVIRONMENT}" \
-                        -var "location=eastasia"
+                        -var "location=eastasia" \
+                        -var "ssh_public_key_path=${WORKSPACE}/ssh/id_rsa.pub"
                     """
                 }
             }
