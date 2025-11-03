@@ -55,12 +55,19 @@ pipeline {
         }
 
         stage('Terraform Plan') {
-            when {
-                expression { params.ACTION == 'plan' || params.ACTION == 'apply' }
-            }
             steps {
                 dir("${env.TF_WORKSPACE_DIR}") {
-                    sh "terraform plan -var-file=terraform.tfvars -out=tfplan"
+                    sh """
+                    terraform plan \
+                        -var "project_name=jay-project-${params.ENVIRONMENT}" \
+                        -var "location=eastasia" \
+                        -var "public_subnet_prefix=10.0.1.0/24" \
+                        -var "private_subnet_prefix=10.0.2.0/24" \
+                        -var "vm_count=1" \
+                        -var "vm_size=Standard_B1s" \
+                        -var "admin_username=azureuser" \
+                        -out=tfplan
+                    """
                 }
             }
         }
